@@ -1,0 +1,238 @@
+source,destination,distance,capacity
+Connaught Place,Karol Bagh,9,124
+Connaught Place,Rohini,10,64
+Karol Bagh,Rohini,13,72
+Karol Bagh,Dwarka,15,108
+Rohini,Dwarka,4,68
+Rohini,Saket,14,118
+Dwarka,Saket,15,54
+Dwarka,Lajpat Nagar,6,141
+Saket,Lajpat Nagar,14,62
+Saket,Pitampura,4,80
+Lajpat Nagar,Pitampura,4,76
+Lajpat Nagar,Janakpuri,10,142
+Pitampura,Janakpuri,14,80
+Pitampura,Vasant Kunj,3,133
+Janakpuri,Vasant Kunj,15,138
+Janakpuri,Shahdara,7,50
+Vasant Kunj,Shahdara,5,99
+Vasant Kunj,Rajouri Garden,6,147
+Shahdara,Rajouri Garden,12,50
+Shahdara,Tilak Nagar,11,113
+Rajouri Garden,Tilak Nagar,6,116
+Rajouri Garden,Paschim Vihar,12,60
+Tilak Nagar,Paschim Vihar,15,140
+Tilak Nagar,Punjabi Bagh,7,84
+Paschim Vihar,Punjabi Bagh,8,145
+Paschim Vihar,Civil Lines,9,50
+Punjabi Bagh,Civil Lines,10,70
+Punjabi Bagh,Chandni Chowk,8,85
+Civil Lines,Chandni Chowk,7,89
+Civil Lines,Daryaganj,11,122
+Chandni Chowk,Daryaganj,14,82
+Chandni Chowk,Kalkaji,9,146
+Daryaganj,Kalkaji,10,77
+Daryaganj,Okhla,8,132
+Kalkaji,Okhla,5,67
+Kalkaji,Sarita Vihar,9,95
+Okhla,Sarita Vihar,10,60
+Okhla,Mayur Vihar,7,129
+Sarita Vihar,Mayur Vihar,14,139
+Sarita Vihar,Preet Vihar,8,65
+Mayur Vihar,Preet Vihar,9,130
+Mayur Vihar,Anand Vihar,12,140
+Preet Vihar,Anand Vihar,15,116
+Preet Vihar,Vivek Vihar,4,143
+Anand Vihar,Vivek Vihar,12,137
+Anand Vihar,Patparganj,7,53
+Vivek Vihar,Patparganj,7,137
+Vivek Vihar,Geeta Colony,5,140
+Patparganj,Geeta Colony,6,79
+Patparganj,Seelampur,11,119
+Geeta Colony,Seelampur,4,84
+Geeta Colony,Welcome,4,84
+Seelampur,Welcome,12,86
+Seelampur,Seemapuri,2,101
+Welcome,Seemapuri,7,144
+Welcome,Dilshad Garden,13,105
+Seemapuri,Dilshad Garden,4,53
+Seemapuri,Model Town,8,71
+Dilshad Garden,Model Town,3,66
+Dilshad Garden,Azadpur,12,90
+Model Town,Azadpur,3,119
+Model Town,Adarsh Nagar,3,116
+Azadpur,Adarsh Nagar,14,144
+Azadpur,Mukherjee Nagar,5,80
+Adarsh Nagar,Mukherjee Nagar,8,143
+Adarsh Nagar,GTB Nagar,13,106
+Mukherjee Nagar,GTB Nagar,12,71
+Mukherjee Nagar,Hudson Lane,13,125
+GTB Nagar,Hudson Lane,8,107
+GTB Nagar,Kingsway Camp,7,139
+Hudson Lane,Kingsway Camp,2,57
+Hudson Lane,Narela,12,99
+Kingsway Camp,Narela,6,135
+Kingsway Camp,Bawana,4,87
+Narela,Bawana,13,121
+Narela,Alipur,9,98
+Bawana,Alipur,2,68
+Bawana,Badli,5,99
+Alipur,Badli,14,129
+Alipur,Keshav Puram,12,64
+Badli,Keshav Puram,12,95
+Badli,Ashok Vihar,9,103
+Keshav Puram,Ashok Vihar,5,61
+Keshav Puram,Shalimar Bagh,7,116
+Ashok Vihar,Shalimar Bagh,9,93
+Ashok Vihar,Wazirpur,2,97
+Shalimar Bagh,Wazirpur,10,88
+Shalimar Bagh,Tri Nagar,8,68
+Wazirpur,Tri Nagar,10,140
+Wazirpur,Inderlok,15,86
+Tri Nagar,Inderlok,9,148
+Tri Nagar,Shastri Nagar,11,59
+Inderlok,Shastri Nagar,11,95
+Inderlok,Paharganj,10,76
+Shastri Nagar,Paharganj,7,58
+Shastri Nagar,Sadar Bazaar,13,141
+Paharganj,Sadar Bazaar,15,50
+Paharganj,Kamla Nagar,8,96
+Sadar Bazaar,Kamla Nagar,6,59
+Sadar Bazaar,Malviya Nagar,8,65
+Kamla Nagar,Malviya Nagar,3,109
+Kamla Nagar,Hauz Khas,11,150
+Malviya Nagar,Hauz Khas,4,99
+Malviya Nagar,Green Park,13,73
+Hauz Khas,Green Park,10,58
+Hauz Khas,Safdarjung,6,77
+Green Park,Safdarjung,2,63
+Green Park,AIIMS Area,9,130
+Safdarjung,AIIMS Area,7,135
+Safdarjung,RK Puram,12,91
+AIIMS Area,RK Puram,6,104
+AIIMS Area,Munirka,9,141
+RK Puram,Munirka,3,61
+RK Puram,Ber Sarai,8,113
+Munirka,Ber Sarai,2,88
+Munirka,Mehrauli,8,122
+Ber Sarai,Mehrauli,3,145
+Ber Sarai,Chhatarpur,9,60
+Mehrauli,Chhatarpur,2,128
+Mehrauli,Vasant Vihar,12,116
+Chhatarpur,Vasant Vihar,11,120
+Chhatarpur,Mahipalpur,4,126
+Vasant Vihar,Mahipalpur,9,136
+Vasant Vihar,Aerocity,4,92
+Mahipalpur,Aerocity,10,101
+Mahipalpur,Dwarka Sector 21,9,58
+Aerocity,Dwarka Sector 21,11,97
+Aerocity,Palam,6,82
+Dwarka Sector 21,Palam,15,144
+Dwarka Sector 21,Dabri,15,82
+Palam,Dabri,5,117
+Palam,Najafgarh,9,115
+Dabri,Najafgarh,4,53
+Dabri,Uttam Nagar,7,106
+Najafgarh,Uttam Nagar,5,96
+Najafgarh,Mohan Garden,6,121
+Uttam Nagar,Mohan Garden,3,87
+Uttam Nagar,Kirti Nagar,13,64
+Mohan Garden,Kirti Nagar,12,100
+Mohan Garden,Naraina,15,64
+Kirti Nagar,Naraina,13,136
+Kirti Nagar,Mayapuri,11,66
+Naraina,Mayapuri,8,76
+Naraina,Rajendra Place,11,85
+Mayapuri,Rajendra Place,2,67
+Mayapuri,Patel Nagar,2,133
+Rajendra Place,Patel Nagar,9,116
+Rajendra Place,Shadipur,10,90
+Patel Nagar,Shadipur,5,69
+Patel Nagar,Moti Nagar,15,124
+Shadipur,Moti Nagar,4,145
+Shadipur,Subhash Nagar,7,120
+Moti Nagar,Subhash Nagar,11,72
+Moti Nagar,Tagore Garden,14,113
+Subhash Nagar,Tagore Garden,7,91
+Subhash Nagar,Hari Nagar,2,126
+Tagore Garden,Hari Nagar,7,147
+Tagore Garden,Jangpura,10,97
+Hari Nagar,Jangpura,10,101
+Hari Nagar,Defence Colony,12,119
+Jangpura,Defence Colony,6,118
+Jangpura,South Extension,15,124
+Defence Colony,South Extension,9,145
+Defence Colony,Greater Kailash,7,79
+South Extension,Greater Kailash,9,104
+South Extension,Nehru Place,8,100
+Greater Kailash,Nehru Place,7,146
+Greater Kailash,Govindpuri,2,116
+Nehru Place,Govindpuri,6,99
+Nehru Place,Tughlakabad,8,92
+Govindpuri,Tughlakabad,9,121
+Govindpuri,Badarpur,14,115
+Tughlakabad,Badarpur,14,117
+Tughlakabad,Okhla Phase 2,9,128
+Badarpur,Okhla Phase 2,8,67
+Badarpur,Jamia Nagar,7,58
+Okhla Phase 2,Jamia Nagar,14,62
+Okhla Phase 2,Batla House,8,130
+Jamia Nagar,Batla House,13,135
+Jamia Nagar,Abul Fazal Enclave,5,130
+Batla House,Abul Fazal Enclave,4,124
+Batla House,Shaheen Bagh,9,66
+Abul Fazal Enclave,Shaheen Bagh,11,96
+Abul Fazal Enclave,Kalindi Kunj,14,134
+Shaheen Bagh,Kalindi Kunj,2,82
+Shaheen Bagh,Noida Sector 15,2,135
+Kalindi Kunj,Noida Sector 15,4,79
+Kalindi Kunj,Noida Sector 18,12,127
+Noida Sector 15,Noida Sector 18,9,140
+Noida Sector 15,Noida Sector 62,12,62
+Noida Sector 18,Noida Sector 62,4,130
+Noida Sector 18,Ghaziabad,2,74
+Noida Sector 62,Ghaziabad,5,73
+Noida Sector 62,Indirapuram,5,108
+Ghaziabad,Indirapuram,5,102
+Ghaziabad,Vaishali,11,87
+Indirapuram,Vaishali,6,133
+Indirapuram,Kaushambi,10,100
+Vaishali,Kaushambi,6,65
+Vaishali,Crossings Republik,3,133
+Kaushambi,Crossings Republik,7,133
+Kaushambi,Loni,12,109
+Crossings Republik,Loni,10,115
+Crossings Republik,Sahibabad,15,50
+Loni,Sahibabad,12,75
+Loni,Faridabad,12,75
+Sahibabad,Faridabad,4,67
+Sahibabad,Ballabgarh,14,143
+Faridabad,Ballabgarh,11,96
+Faridabad,Gurgaon Sector 14,13,134
+Ballabgarh,Gurgaon Sector 14,12,94
+Ballabgarh,Cyber City,3,88
+Gurgaon Sector 14,Cyber City,2,68
+Gurgaon Sector 14,MG Road Gurgaon,5,64
+Cyber City,MG Road Gurgaon,5,82
+Cyber City,DLF Phase 3,2,145
+MG Road Gurgaon,DLF Phase 3,8,129
+MG Road Gurgaon,DLF Phase 5,14,140
+DLF Phase 3,DLF Phase 5,9,117
+DLF Phase 3,Sohna Road,3,107
+DLF Phase 5,Sohna Road,5,70
+DLF Phase 5,Golf Course Road,8,99
+Sohna Road,Golf Course Road,12,138
+Sohna Road,Udyog Vihar,3,72
+Golf Course Road,Udyog Vihar,9,78
+Golf Course Road,Manesar,11,54
+Udyog Vihar,Manesar,15,58
+Udyog Vihar,Sector 56 Gurgaon,9,135
+Manesar,Sector 56 Gurgaon,3,63
+Manesar,Sector 29 Gurgaon,12,64
+Sector 56 Gurgaon,Sector 29 Gurgaon,5,116
+Sector 56 Gurgaon,Palam Vihar,8,84
+Sector 29 Gurgaon,Palam Vihar,9,61
+Sector 29 Gurgaon,Dwarka Expressway,6,99
+Palam Vihar,Dwarka Expressway,7,133
+Palam Vihar,New Ashok Nagar,10,92
+Dwarka Expressway,New Ashok Nagar,15,104
