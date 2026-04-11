@@ -3,7 +3,6 @@ from fastapi.responses import HTMLResponse
 import pandas as pd
 import numpy as np
 import networkx as nx
-import random
 
 app = FastAPI()
 
@@ -20,14 +19,13 @@ for _, row in roads.iterrows():
     cost = row['distance'] / row['capacity']
     G.add_edge(row['source'], row['destination'], weight=cost)
 
-
-# ---------------- GENETIC ALGORITHM ----------------
+# ---------------- GENETIC DISTRIBUTION ----------------
 def genetic_distribution(n):
     vals = np.random.dirichlet(np.ones(n), size=1)[0]
-    return [round(v*100,2) for v in vals]
+    return [round(v * 100, 2) for v in vals]
 
 
-# ---------------- DASHBOARD UI ----------------
+# ---------------- DASHBOARD ----------------
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
 
@@ -57,22 +55,21 @@ def dashboard():
     <script>
     async function run(){{
         const area = document.getElementById('area').value;
-        const res = await fetch('/evacuate?area='+area);
+        const res = await fetch('/evacuate?area=' + area);
         const data = await res.json();
 
-        let html = `<div class='card'>
-        <h3>Evacuate From: ${data.source}</h3>
-        <h4>Safe Zones:</h4> ${data.safe_zones.join(", ")}
-        <h4>Crowd Distribution:</h4>`;
+        let html = "<div class='card'>";
+        html += "<h3>Evacuate From: " + data.source + "</h3>";
+        html += "<h4>Safe Zones:</h4> " + data.safe_zones.join(", ");
 
-        for(let k in data.distribution){{
-            html += `<br>➡ ${k} : ${data.distribution[k]} %`;
+        html += "<h4>Crowd Distribution:</h4>";
+        for (let k in data.distribution){{
+            html += "<br>➡ " + k + " : " + data.distribution[k] + " %";
         }}
 
         html += "<h4>Optimized Routes:</h4>";
-
-        for(let k in data.routes){{
-            html += `<br><b>${k}</b>: ${data.routes[k].join(" → ")}`;
+        for (let k in data.routes){{
+            html += "<br><b>" + k + "</b>: " + data.routes[k].join(" → ");
         }}
 
         html += "</div>";
@@ -90,17 +87,17 @@ def dashboard():
 @app.get("/evacuate")
 def evacuate(area: str):
 
-    # Weather Risk
+    # Weather risk
     weather_score = (
         0.4 * weather['Humidity'].mean() +
         0.3 * weather['Wind Speed (km/h)'].mean() +
         0.2 * weather['Loud Cover'].mean()
     ) * 0.01
 
-    # Earthquake Risk
+    # Earthquake risk
     earthquake_score = earthquake['Magnitude'].mean() * 0.01
 
-    # Combined Risk Calculation
+    # Combined risk
     areas['risk'] = (
         0.3 * areas['population_density'] +
         0.25 * areas['hazard_level'] +
@@ -122,7 +119,7 @@ def evacuate(area: str):
         path = nx.shortest_path(G, source=source, target=zone, weight='weight')
         routes[zone] = path
 
-    # Genetic Algorithm Distribution
+    # Genetic distribution
     distribution_values = genetic_distribution(len(safe_zones))
 
     distribution = {
