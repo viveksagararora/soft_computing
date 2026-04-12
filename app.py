@@ -57,10 +57,6 @@ def dashboard():
     <head>
     <title>AI Evacuation Dashboard</title>
 
-    <!-- Leaflet Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
     <style>
     body {{
         font-family: Arial;
@@ -69,12 +65,18 @@ def dashboard():
         color:white;
     }}
 
+    .container {{
+        max-width:900px;
+        margin:auto;
+    }}
+
     .card {{
         background:white;
         color:black;
         padding:20px;
         border-radius:10px;
         margin-top:20px;
+        box-shadow:0 5px 15px rgba(0,0,0,0.2);
     }}
 
     button {{
@@ -87,10 +89,14 @@ def dashboard():
         cursor:pointer;
     }}
 
-    #map {{
-        height:400px;
-        margin-top:20px;
-        border-radius:10px;
+    input, select {{
+        padding:10px;
+        margin-top:10px;
+        width:100%;
+    }}
+
+    h1 {{
+        text-align:center;
     }}
     </style>
 
@@ -98,11 +104,13 @@ def dashboard():
 
     <body>
 
+    <div class="container">
+
     <h1>🚨 AI Disaster Evacuation System</h1>
 
     <!-- STEP 1 -->
     <div class="card">
-    <h3>Select Risk Area</h3>
+    <h3>Step 1: Select Risk Area</h3>
     <select id="area">{options}</select>
     <button onclick="analyze()">Analyze Risk</button>
     </div>
@@ -112,20 +120,12 @@ def dashboard():
     <div id="distribution_output"></div>
     <div id="routes_output"></div>
 
-    <div id="map"></div>
+    </div>
 
     <script>
 
-    let map = L.map('map').setView([28.6, 77.2], 11);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {{
-        attribution: 'Map data © OpenStreetMap contributors'
-    }}).addTo(map);
-
-
     async function analyze(){{
         let area = document.getElementById("area").value;
-
         let res = await fetch('/risk?area='+area);
         let data = await res.json();
 
@@ -142,9 +142,9 @@ def dashboard():
         document.getElementById("risk_output").innerHTML = html;
 
         document.getElementById("crowd_input").innerHTML =
-        "<div class='card'><h3>Enter Crowd Size</h3>" +
-        "<input id='people' placeholder='Number of people'>" +
-        "<button onclick='distribute()'>Distribute</button></div>";
+        "<div class='card'><h3>Step 2: Enter Crowd Size</h3>" +
+        "<input id='people' placeholder='Enter number of people'>" +
+        "<button onclick='distribute()'>Distribute Crowd</button></div>";
     }}
 
 
@@ -175,32 +175,11 @@ def dashboard():
         let res = await fetch('/routes?area='+area);
         let data = await res.json();
 
-        let html = "<div class='card'><h3>Routes</h3>";
-
-        map.eachLayer(layer => {{
-            if(layer instanceof L.Marker || layer instanceof L.Polyline)
-                map.removeLayer(layer);
-        }});
+        let html = "<div class='card'><h3>Optimized Routes</h3>";
 
         for(let k in data.routes){{
             html += "<p><b>" + k + "</b>: " +
                     data.routes[k].join(" → ") + "</p>";
-
-            let coords = [];
-
-            data.routes[k].forEach(function(loc){{
-                fetch('/coords?area='+loc)
-                .then(r => r.json())
-                .then(c => {{
-                    let latlng = [c.lat, c.lon];
-                    coords.push(latlng);
-                    L.marker(latlng).addTo(map).bindPopup(loc);
-
-                    if(coords.length > 1){{
-                        L.polyline(coords, {{color:'blue'}}).addTo(map);
-                    }}
-                }});
-            }});
         }}
 
         html += "</div>";
@@ -215,7 +194,7 @@ def dashboard():
     """
 
 
-# ---------------- API ----------------
+# ---------------- APIs ----------------
 
 @app.get("/risk")
 def risk(area:str):
@@ -251,9 +230,3 @@ def routes(area:str):
         routes[zone] = nx.shortest_path(G, area, zone, weight='weight')
 
     return {"routes": routes}
-
-
-@app.get("/coords")
-def coords(area:str):
-    row = areas[areas['area']==area].iloc[0]
-    return {"lat": row['latitude'], "lon": row['longitude']}
