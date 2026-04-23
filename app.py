@@ -6,7 +6,7 @@ import networkx as nx
 
 app = FastAPI()
 
-# ---------------- LOAD DATA ----------------
+# ---------------- DATA ----------------
 areas = pd.read_csv("realistic_100_areas.csv")
 roads = pd.read_csv("realistic_100_roads.csv")
 weather = pd.read_csv("weatherHistory.csv")
@@ -15,7 +15,6 @@ earthquake = pd.read_csv("database.csv")
 # ---------------- GRAPH ----------------
 G = nx.Graph()
 for _, row in roads.iterrows():
-    # ✅ FIXED COST (distance priority)
     cost = row['distance'] + (1 / max(row['capacity'],1))
     G.add_edge(row['source'], row['destination'], weight=cost)
 
@@ -37,14 +36,14 @@ def calculate_risk():
         0.1 * earthquake_score
     )
 
-    # ✅ Normalize 0–100
-    areas['risk'] = 100 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
+    # ✅ NO ZERO RISK (range 10–100)
+    areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
 
     return areas.sort_values(by='risk', ascending=False)
 
 # ---------------- GA ----------------
 def genetic_distribution(n, total_people):
-    vals = np.random.dirichlet(np.ones(n), size=1)[0]
+    vals = np.random.dirichlet(np.ones(n))[0]
     perc = [round(v*100,2) for v in vals]
     ppl = [int(v*total_people) for v in vals]
     return perc, ppl
@@ -53,13 +52,13 @@ def genetic_distribution(n, total_people):
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
 
-    options = "".join([f"<option value='{a}'>{a}</option>" for a in areas['area']])
+    options = "<option value='' disabled selected>Select Area</option>" + \
+              "".join([f"<option value='{a}'>{a}</option>" for a in areas['area']])
 
     return f"""
     <html>
     <head>
     <title>RescueNet</title>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
@@ -76,7 +75,7 @@ def dashboard():
         color:black;
         padding:25px;
         border-radius:12px;
-        max-width:600px;
+        max-width:650px;
         margin:20px auto;
     }}
 
@@ -99,12 +98,12 @@ def dashboard():
 
     .best {{
         background:#d4edda;
-        padding:10px;
+        padding:12px;
         border-radius:6px;
         margin-top:10px;
+        font-weight:bold;
     }}
     </style>
-
     </head>
 
     <body>
@@ -128,32 +127,15 @@ def dashboard():
         let k = document.getElementById("routesCount").value || 3;
 
         let riskData = await (await fetch('/risk?area='+area)).json();
-        let distData = await (await fetch('/distribution?area='+area+'&people='+people)).json();
-        let routeData = await (await fetch('/routes?area='+area+'&k='+k)).json();
 
         let html = "<div class='card'>";
         html += "<h3>Risk Score: " + riskData.risk.toFixed(2) + "</h3>";
-
         html += "<h4>Safe Zones</h4><canvas id='riskChart'></canvas>";
-        html += "<h4>Crowd Distribution</h4><canvas id='distChart'></canvas>";
-
-        html += "<h4>Routes</h4>";
-
-        // BEST ROUTE
-        html += "<div class='best'><b>⭐ Best Route:</b><br>" +
-                routeData.best.join(" → ") + "</div>";
-
-        // OTHER ROUTES
-        for(let i=0;i<routeData.others.length;i++){{
-            html += "<p>Alternative Route " + (i+1) + ": " +
-                    routeData.others[i].join(" → ") + "</p>";
-        }}
-
         html += "</div>";
 
         document.getElementById("output").innerHTML = html;
 
-        // Charts
+        // Risk Chart
         new Chart(document.getElementById("riskChart"), {{
             type: 'bar',
             data: {{
@@ -165,16 +147,48 @@ def dashboard():
             }}
         }});
 
-        new Chart(document.getElementById("distChart"), {{
-            type: 'bar',
-            data: {{
-                labels: distData.safe_zones,
-                datasets: [{{
-                    label: 'People %',
-                    data: distData.percentage
-                }}]
-            }}
-        }});
+        // STEP 2: DISTRIBUTION
+        setTimeout(async () => {{
+            let distData = await (await fetch('/distribution?area='+area+'&people='+people)).json();
+
+            let distHtml = "<div class='card'>";
+            distHtml += "<h3>Crowd Distribution</h3>";
+            distHtml += "<canvas id='distChart'></canvas>";
+            distHtml += "</div>";
+
+            document.getElementById("output").innerHTML += distHtml;
+
+            new Chart(document.getElementById("distChart"), {{
+                type: 'bar',
+                data: {{
+                    labels: distData.safe_zones,
+                    datasets: [{{
+                        label: 'People %',
+                        data: distData.percentage
+                    }}]
+                }}
+            }});
+        }}, 800);
+
+        // STEP 3: ROUTES
+        setTimeout(async () => {{
+            let routeData = await (await fetch('/routes?area='+area+'&k='+k)).json();
+
+            let routeHtml = "<div class='card'>";
+            routeHtml += "<h3>All Routes</h3>";
+
+            routeData.routes.forEach(function(route, i){{
+                routeHtml += "<p>Route " + (i+1) + ": " + route.join(" → ") + "</p>";
+            }});
+
+            routeHtml += "<div class='best'>⭐ Best Route:<br>" +
+                         routeData.best.join(" → ") + "</div>";
+
+            routeHtml += "</div>";
+
+            document.getElementById("output").innerHTML += routeHtml;
+
+        }}, 1600);
     }}
 
     </script>
@@ -218,17 +232,12 @@ def routes(area:str, k:int=3):
 
     for zone in safe:
         path = nx.dijkstra_path(G, area, zone, weight='weight')
-
-        # limit path length
-        if len(path) > 12:
-            path = path[:12] + ["..."]
-
-        cost = nx.path_weight(G, path[:-1] if "..." in path else path, weight='weight')
+        cost = nx.path_weight(G, path, weight='weight')
         all_paths.append((cost, path))
 
     all_paths.sort(key=lambda x: x[0])
 
     best = all_paths[0][1]
-    others = [p[1] for p in all_paths[1:]]
+    routes = [p[1] for p in all_paths]
 
-    return {"best": best, "others": others}
+    return {"routes": routes, "best": best}
