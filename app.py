@@ -246,7 +246,7 @@ def dashboard():
 def risk(area:str):
     data = calculate_risk()
     selected = data[data['area']==area].iloc[0]
-    safe = data.tail(3)
+    safe = data[data['area'] != area].nsmallest(3, 'risk')
 
     return {
         "risk": float(selected['risk']),
