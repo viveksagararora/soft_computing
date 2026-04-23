@@ -15,7 +15,8 @@ earthquake = pd.read_csv("database.csv")
 # ---------------- GRAPH ----------------
 G = nx.Graph()
 for _, row in roads.iterrows():
-    cost = row['distance'] / max(row['capacity'],1)
+    # ✅ FIXED COST (distance priority)
+    cost = row['distance'] + (1 / max(row['capacity'],1))
     G.add_edge(row['source'], row['destination'], weight=cost)
 
 # ---------------- RISK ----------------
@@ -36,6 +37,7 @@ def calculate_risk():
         0.1 * earthquake_score
     )
 
+    # ✅ Normalize 0–100
     areas['risk'] = 100 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
 
     return areas.sort_values(by='risk', ascending=False)
@@ -72,7 +74,7 @@ def dashboard():
     .card {{
         background:white;
         color:black;
-        padding:20px;
+        padding:25px;
         border-radius:12px;
         max-width:600px;
         margin:20px auto;
@@ -92,6 +94,14 @@ def dashboard():
         color:white;
         border:none;
         border-radius:6px;
+        font-weight:bold;
+    }}
+
+    .best {{
+        background:#d4edda;
+        padding:10px;
+        border-radius:6px;
+        margin-top:10px;
     }}
     </style>
 
@@ -115,35 +125,35 @@ def dashboard():
     async function run(){{
         let area = document.getElementById("area").value;
         let people = document.getElementById("people").value;
-        let routesCount = document.getElementById("routesCount").value;
+        let k = document.getElementById("routesCount").value || 3;
 
-        let riskRes = await fetch(`/risk?area=${{area}}`);
-        let riskData = await riskRes.json();
-
-        let distRes = await fetch(`/distribution?area=${{area}}&people=${{people}}`);
-        let distData = await distRes.json();
-
-        let routeRes = await fetch(`/routes?area=${{area}}&k=${{routesCount}}`);
-        let routeData = await routeRes.json();
+        let riskData = await (await fetch('/risk?area='+area)).json();
+        let distData = await (await fetch('/distribution?area='+area+'&people='+people)).json();
+        let routeData = await (await fetch('/routes?area='+area+'&k='+k)).json();
 
         let html = "<div class='card'>";
         html += "<h3>Risk Score: " + riskData.risk.toFixed(2) + "</h3>";
 
         html += "<h4>Safe Zones</h4><canvas id='riskChart'></canvas>";
-
         html += "<h4>Crowd Distribution</h4><canvas id='distChart'></canvas>";
 
         html += "<h4>Routes</h4>";
 
-        for(let k in routeData.routes){{
-            html += "<p><b>" + k + "</b>: " + routeData.routes[k].join(" → ") + "</p>";
+        // BEST ROUTE
+        html += "<div class='best'><b>⭐ Best Route:</b><br>" +
+                routeData.best.join(" → ") + "</div>";
+
+        // OTHER ROUTES
+        for(let i=0;i<routeData.others.length;i++){{
+            html += "<p>Alternative Route " + (i+1) + ": " +
+                    routeData.others[i].join(" → ") + "</p>";
         }}
 
         html += "</div>";
 
         document.getElementById("output").innerHTML = html;
 
-        // Risk Chart
+        // Charts
         new Chart(document.getElementById("riskChart"), {{
             type: 'bar',
             data: {{
@@ -155,7 +165,6 @@ def dashboard():
             }}
         }});
 
-        // Distribution Chart
         new Chart(document.getElementById("distChart"), {{
             type: 'bar',
             data: {{
@@ -205,8 +214,21 @@ def routes(area:str, k:int=3):
     data = calculate_risk()
     safe = data.tail(k)['area'].values
 
-    routes = {}
-    for zone in safe:
-        routes[zone] = nx.shortest_path(G, area, zone, weight='weight')
+    all_paths = []
 
-    return {"routes": routes}
+    for zone in safe:
+        path = nx.dijkstra_path(G, area, zone, weight='weight')
+
+        # limit path length
+        if len(path) > 12:
+            path = path[:12] + ["..."]
+
+        cost = nx.path_weight(G, path[:-1] if "..." in path else path, weight='weight')
+        all_paths.append((cost, path))
+
+    all_paths.sort(key=lambda x: x[0])
+
+    best = all_paths[0][1]
+    others = [p[1] for p in all_paths[1:]]
+
+    return {"best": best, "others": others}
