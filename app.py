@@ -39,12 +39,14 @@ def calculate_risk():
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
     return areas
 
-# ---------------- SAFE ZONES (FIXED) ----------------
+# ---------------- SAFE ZONES ----------------
 def get_safe_zones(data, area, k=3):
-    # 🔥 RANDOMIZED + RELATIVE
-    candidates = data[data['area'] != area].sample(15)
+    selected = data[data['area']==area].iloc[0]
 
-    safe = candidates.nsmallest(k, 'risk')
+    safe = data[
+        (data['area'] != area) &
+        (data['risk'] < selected['risk'])
+    ].nsmallest(k, 'risk')
 
     return safe
 
@@ -133,8 +135,8 @@ function resetAll(){{
 
 async function analyze(){{
     resetAll();
-    let area = document.getElementById("area").value;
 
+    let area = document.getElementById("area").value;
     if(!area) return alert("Select area");
 
     let data = await (await fetch('/risk?area='+area)).json();
@@ -162,18 +164,19 @@ async function analyze(){{
         }}
     }});
 
+    // 🔥 STORE SAFE ZONES
     window.safeZones = data.safe_zones.map(z=>z.name);
 }}
 
 async function distribute(){{
     step3.innerHTML=""; step4.innerHTML=""; step5.innerHTML="";
 
-    let area = document.getElementById("area").value;
     let people = document.getElementById("people").value;
-
     if(!people) return alert("Enter people");
 
-    let data = await (await fetch('/distribution?area='+area+'&people='+people)).json();
+    let zones = window.safeZones.join(",");
+
+    let data = await (await fetch(`/distribution?people=${{people}}&zones=${{zones}}`)).json();
 
     let html = "<div class='card'>";
     html += "<h3>Crowd Distribution</h3>";
@@ -186,7 +189,7 @@ async function distribute(){{
 
     html += "<select id='destination'>";
     html += "<option disabled selected>Select Destination</option>";
-    window.safeZones.forEach(z=>{{
+    data.safe_zones.forEach(z=>{{
         html += "<option value='"+z+"'>"+z+"</option>";
     }});
     html += "</select>";
@@ -255,14 +258,14 @@ def risk(area:str):
         ]
     }
 
+# 🔥 FIXED: SAME SAFE ZONES USED
 @app.get("/distribution")
-def distribution(area:str, people:int):
-    data = calculate_risk()
-    safe = get_safe_zones(data, area)
+def distribution(people:int, zones:str):
+    safe = zones.split(",")
 
     perc, ppl = genetic_distribution(len(safe), int(people))
 
-    return {"safe_zones": list(safe['area']), "percentage": perc, "people": ppl}
+    return {"safe_zones": safe, "percentage": perc, "people": ppl}
 
 @app.get("/routes")
 def routes(area:str, destination:str, k:int=3):
