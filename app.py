@@ -37,18 +37,16 @@ def calculate_risk():
     )
 
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
-    return areas.sort_values(by='risk', ascending=False)
+    return areas
 
-# ---------------- SAFE ZONES ----------------
+# ---------------- SAFE ZONES (FIXED) ----------------
 def get_safe_zones(data, area, k=3):
-    selected = data[data['area']==area].iloc[0]
+    # 🔥 RANDOMIZED + RELATIVE
+    candidates = data[data['area'] != area].sample(15)
 
-    safe = data[
-        (data['area'] != area) &
-        (data['risk'] < selected['risk'])
-    ].nsmallest(k, 'risk')
+    safe = candidates.nsmallest(k, 'risk')
 
-    return safe['area'].values
+    return safe
 
 # ---------------- GA ----------------
 def genetic_distribution(n, total_people):
@@ -65,171 +63,181 @@ def dashboard():
               "".join([f"<option value='{a}'>{a}</option>" for a in areas['area']])
 
     return f"""
-    <html>
-    <head>
-    <title>RescueNet</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<html>
+<head>
+<title>RescueNet</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <style>
-    body {{
-        font-family: 'Segoe UI';
-        background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-        color:white;
-        text-align:center;
-        padding:40px;
-    }}
-    .card {{
-        background:white;
-        color:black;
-        padding:25px;
-        border-radius:12px;
-        max-width:600px;
-        margin:20px auto;
-    }}
-    input, select {{
-        width:100%;
-        padding:10px;
-        margin-top:10px;
-    }}
-    button {{
-        width:100%;
-        padding:12px;
-        margin-top:15px;
-        background:#0077ff;
-        color:white;
-        border:none;
-        border-radius:6px;
-        font-weight:bold;
-        cursor:pointer;
-    }}
-    .best {{
-        background:#d4edda;
-        padding:10px;
-        margin-top:10px;
-        border-radius:6px;
-    }}
-    </style>
-    </head>
+<style>
+body {{
+    font-family: 'Segoe UI';
+    background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    color:white;
+    text-align:center;
+    padding:40px;
+}}
+.card {{
+    background:white;
+    color:black;
+    padding:25px;
+    border-radius:12px;
+    max-width:600px;
+    margin:20px auto;
+}}
+input, select {{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+}}
+button {{
+    width:100%;
+    padding:12px;
+    margin-top:15px;
+    background:#0077ff;
+    color:white;
+    border:none;
+    border-radius:6px;
+    font-weight:bold;
+}}
+.best {{
+    background:#d4edda;
+    padding:10px;
+    margin-top:10px;
+    border-radius:6px;
+}}
+</style>
+</head>
 
-    <body>
+<body>
 
-    <h1>🚨 RescueNet</h1>
+<h1>🚨 RescueNet</h1>
 
-    <div class="card">
-        <h3>Select Area</h3>
-        <select id="area" onchange="resetAll()">{options}</select>
-        <button onclick="analyze()">Analyze Risk</button>
-    </div>
+<div class="card">
+    <select id="area" onchange="resetAll()">{options}</select>
+    <button onclick="analyze()">Analyze Risk</button>
+</div>
 
-    <div id="step2"></div>
-    <div id="step3"></div>
-    <div id="step4"></div>
-    <div id="step5"></div>
+<div id="step2"></div>
+<div id="step3"></div>
+<div id="step4"></div>
+<div id="step5"></div>
 
-    <script>
+<script>
 
-    function resetAll(){{
-        step2.innerHTML="";
-        step3.innerHTML="";
-        step4.innerHTML="";
-        step5.innerHTML="";
-    }}
+function resetAll(){{
+    step2.innerHTML="";
+    step3.innerHTML="";
+    step4.innerHTML="";
+    step5.innerHTML="";
+}}
 
-    async function analyze(){{
-        resetAll();
-        let area = areaSelect();
+async function analyze(){{
+    resetAll();
+    let area = document.getElementById("area").value;
 
-        let data = await (await fetch('/risk?area='+area)).json();
+    if(!area) return alert("Select area");
 
-        let html = "<div class='card'>";
-        html += "<h3>Risk Score: " + data.risk.toFixed(2) + "</h3>";
-        html += "<canvas id='riskChart'></canvas>";
+    let data = await (await fetch('/risk?area='+area)).json();
 
-        html += "<input id='people' placeholder='Enter number of people'>";
-        html += "<button onclick='distribute()'>Next</button>";
-        html += "</div>";
+    let html = "<div class='card'>";
+    html += "<h3>Risk Score: "+data.risk.toFixed(2)+"</h3>";
 
-        step2.innerHTML = html;
+    html += "<h4>Safe Zones:</h4>";
+    data.safe_zones.forEach(z=>{{
+        html += "<p>"+z.name+" → "+z.risk.toFixed(2)+"</p>";
+    }});
 
-        new Chart(document.getElementById("riskChart"), {{
-            type:'bar',
-            data:{{
-                labels:data.safe_zones.map(z=>z.name),
-                datasets:[{{data:data.safe_zones.map(z=>z.risk)}}]
-            }}
-        }});
+    html += "<canvas id='riskChart'></canvas>";
 
-        window.safeZones = data.safe_zones.map(z=>z.name);
-    }}
+    html += "<input id='people' placeholder='Enter people'>";
+    html += "<button onclick='distribute()'>Next</button></div>";
 
-    async function distribute(){{
-        step3.innerHTML=""; step4.innerHTML=""; step5.innerHTML="";
+    step2.innerHTML = html;
 
-        let area = areaSelect();
-        let people = document.getElementById("people").value;
+    new Chart(document.getElementById("riskChart"), {{
+        type:'bar',
+        data:{{
+            labels:data.safe_zones.map(z=>z.name),
+            datasets:[{{label:'Risk',data:data.safe_zones.map(z=>z.risk)}}]
+        }}
+    }});
 
-        let data = await (await fetch('/distribution?area='+area+'&people='+people)).json();
+    window.safeZones = data.safe_zones.map(z=>z.name);
+}}
 
-        let html = "<div class='card'>";
-        html += "<h3>Crowd Distribution</h3>";
-        html += "<canvas id='distChart'></canvas>";
+async function distribute(){{
+    step3.innerHTML=""; step4.innerHTML=""; step5.innerHTML="";
 
-        html += "<select id='destination'>";
-        window.safeZones.forEach(z => {{
-            html += "<option value='"+z+"'>"+z+"</option>";
-        }});
-        html += "</select>";
+    let area = document.getElementById("area").value;
+    let people = document.getElementById("people").value;
 
-        html += "<input id='k' placeholder='Number of routes'>";
-        html += "<button onclick='routes()'>Generate Routes</button>";
-        html += "</div>";
+    if(!people) return alert("Enter people");
 
-        step3.innerHTML = html;
+    let data = await (await fetch('/distribution?area='+area+'&people='+people)).json();
 
-        new Chart(document.getElementById("distChart"), {{
-            type:'bar',
-            data:{{
-                labels:data.safe_zones,
-                datasets:[{{data:data.percentage}}]
-            }}
-        }});
+    let html = "<div class='card'>";
+    html += "<h3>Crowd Distribution</h3>";
+
+    for(let i=0;i<data.safe_zones.length;i++){{
+        html += "<p>"+data.safe_zones[i]+" → "+data.percentage[i]+"%</p>";
     }}
 
-    async function routes(){{
-        step4.innerHTML=""; step5.innerHTML="";
+    html += "<canvas id='distChart'></canvas>";
 
-        let area = areaSelect();
-        let dest = document.getElementById("destination").value;
-        let k = document.getElementById("k").value || 3;
+    html += "<select id='destination'>";
+    html += "<option disabled selected>Select Destination</option>";
+    window.safeZones.forEach(z=>{{
+        html += "<option value='"+z+"'>"+z+"</option>";
+    }});
+    html += "</select>";
 
-        let data = await (await fetch(`/routes?area=${{area}}&destination=${{dest}}&k=${{k}}`)).json();
+    html += "<input id='k' placeholder='Number of routes'>";
+    html += "<button onclick='routes()'>Generate Routes</button></div>";
 
-        let html = "<div class='card'><h3>Routes</h3>";
+    step3.innerHTML = html;
 
-        data.routes.forEach((r,i)=>{{
-            html += "<p>Route "+(i+1)+": "+r.join(" → ")+"</p>";
-        }});
+    new Chart(document.getElementById("distChart"), {{
+        type:'bar',
+        data:{{
+            labels:data.safe_zones,
+            datasets:[{{label:'People %',data:data.percentage}}]
+        }}
+    }});
+}}
 
-        html += "<button onclick='bestRoute()'>Show Best Route</button></div>";
+async function routes(){{
+    step4.innerHTML=""; step5.innerHTML="";
 
-        window.best = data.best;
+    let area = document.getElementById("area").value;
+    let dest = document.getElementById("destination").value;
+    let k = document.getElementById("k").value || 3;
 
-        step4.innerHTML = html;
-    }}
+    if(!dest) return alert("Select destination");
 
-    function bestRoute(){{
-        step5.innerHTML = "<div class='card best'><h3>⭐ Best Route</h3>"+window.best.join(" → ")+"</div>";
-    }}
+    let data = await (await fetch(`/routes?area=${{area}}&destination=${{dest}}&k=${{k}}`)).json();
 
-    function areaSelect(){{
-        return document.getElementById("area").value;
-    }}
+    let html = "<div class='card'><h3>Routes</h3>";
 
-    </script>
+    data.routes.forEach((r,i)=>{{
+        html += "<p>Route "+(i+1)+": "+r.join(" → ")+"</p>";
+    }});
 
-    </body>
-    </html>
-    """
+    html += "<button onclick='bestRoute()'>Best Route</button></div>";
+
+    window.best = data.best;
+
+    step4.innerHTML = html;
+}}
+
+function bestRoute(){{
+    step5.innerHTML = "<div class='card best'><h3>⭐ Best Route</h3>"+window.best.join(" → ")+"</div>";
+}}
+
+</script>
+
+</body>
+</html>
+"""
 
 # ---------------- APIs ----------------
 
@@ -242,8 +250,8 @@ def risk(area:str):
     return {
         "risk": float(selected['risk']),
         "safe_zones": [
-            {"name": s, "risk": float(data[data['area']==s]['risk'].values[0])}
-            for s in safe
+            {"name": r['area'], "risk": float(r['risk'])}
+            for _, r in safe.iterrows()
         ]
     }
 
@@ -254,11 +262,10 @@ def distribution(area:str, people:int):
 
     perc, ppl = genetic_distribution(len(safe), int(people))
 
-    return {"safe_zones": list(safe), "percentage": perc, "people": ppl}
+    return {"safe_zones": list(safe['area']), "percentage": perc, "people": ppl}
 
 @app.get("/routes")
 def routes(area:str, destination:str, k:int=3):
-
     paths = nx.shortest_simple_paths(G, area, destination, weight='weight')
 
     routes = []
@@ -267,7 +274,4 @@ def routes(area:str, destination:str, k:int=3):
         if i == k-1:
             break
 
-    return {
-        "routes": routes,
-        "best": routes[0]
-    }
+    return {"routes": routes, "best": routes[0]}
