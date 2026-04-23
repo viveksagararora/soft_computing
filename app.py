@@ -15,7 +15,7 @@ earthquake = pd.read_csv("database.csv")
 # ---------------- GRAPH ----------------
 G = nx.Graph()
 for _, row in roads.iterrows():
-    cost = row['distance'] / row['capacity']
+    cost = row['distance'] / max(row['capacity'],1)
     G.add_edge(row['source'], row['destination'], weight=cost)
 
 # ---------------- RISK ----------------
@@ -24,17 +24,20 @@ def calculate_risk():
         0.4 * weather['Humidity'].mean() +
         0.3 * weather['Wind Speed (km/h)'].mean() +
         0.2 * weather['Loud Cover'].mean()
-    ) * 0.01
+    )
 
-    earthquake_score = earthquake['Magnitude'].mean() * 0.01
+    earthquake_score = earthquake['Magnitude'].mean()
 
-    areas['risk'] = (
+    raw_risk = (
         0.3 * areas['population_density'] +
         0.25 * areas['hazard_level'] +
         0.2 * areas['rainfall'] +
-        weather_score +
-        earthquake_score
+        0.15 * weather_score +
+        0.1 * earthquake_score
     )
+
+    # 🔥 Normalize to 0–100
+    areas['risk'] = 100 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
 
     return areas.sort_values(by='risk', ascending=False)
 
@@ -45,7 +48,6 @@ def genetic_distribution(n, total_people):
     ppl = [int(v*total_people) for v in vals]
     return perc, ppl
 
-
 # ---------------- UI ----------------
 @app.get("/", response_class=HTMLResponse)
 def dashboard():
@@ -55,18 +57,25 @@ def dashboard():
     return f"""
     <html>
     <head>
-    <title>AI Evacuation Dashboard</title>
+    <title>RescueNet - AI Evacuation System</title>
 
     <style>
     body {{
-        font-family: Arial;
-        background: linear-gradient(135deg,#667eea,#764ba2);
-        padding:30px;
+        margin:0;
+        font-family: 'Segoe UI';
+        background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
         color:white;
     }}
 
+    .header {{
+        text-align:center;
+        padding:20px;
+        font-size:28px;
+        font-weight:bold;
+    }}
+
     .container {{
-        max-width:900px;
+        max-width:1000px;
         margin:auto;
     }}
 
@@ -74,29 +83,48 @@ def dashboard():
         background:white;
         color:black;
         padding:20px;
-        border-radius:10px;
+        border-radius:12px;
         margin-top:20px;
-        box-shadow:0 5px 15px rgba(0,0,0,0.2);
+        box-shadow:0 10px 25px rgba(0,0,0,0.3);
+        animation: fadeIn 0.5s ease-in-out;
     }}
 
     button {{
-        padding:10px;
-        margin-top:10px;
-        background:#4a47a3;
+        padding:12px;
+        background:#0077ff;
         color:white;
         border:none;
-        border-radius:5px;
+        border-radius:6px;
         cursor:pointer;
+        width:100%;
+        margin-top:10px;
+        font-weight:bold;
+    }}
+
+    button:hover {{
+        background:#005fcc;
     }}
 
     input, select {{
         padding:10px;
         margin-top:10px;
         width:100%;
+        border-radius:6px;
+        border:1px solid #ccc;
     }}
 
-    h1 {{
-        text-align:center;
+    .badge {{
+        display:inline-block;
+        padding:6px 10px;
+        border-radius:6px;
+        background:#ff4d4d;
+        color:white;
+        font-weight:bold;
+    }}
+
+    @keyframes fadeIn {{
+        from {{opacity:0; transform:translateY(10px);}}
+        to {{opacity:1; transform:translateY(0);}}
     }}
     </style>
 
@@ -104,11 +132,10 @@ def dashboard():
 
     <body>
 
+    <div class="header">🚨 RescueNet - Smart Evacuation System</div>
+
     <div class="container">
 
-    <h1>🚨 AI Disaster Evacuation System</h1>
-
-    <!-- STEP 1 -->
     <div class="card">
     <h3>Step 1: Select Risk Area</h3>
     <select id="area">{options}</select>
@@ -130,11 +157,12 @@ def dashboard():
         let data = await res.json();
 
         let html = "<div class='card'>";
-        html += "<h3>Risk Score: " + data.risk.toFixed(2) + "</h3>";
+        html += "<h3>Risk Score: <span class='badge'>" + data.risk.toFixed(2) + "</span></h3>";
+
         html += "<h4>Safe Zones:</h4>";
 
         data.safe_zones.forEach(function(z){{
-            html += "<p>" + z.name + " (Risk: " + z.risk.toFixed(2) + ")</p>";
+            html += "<p>✔ " + z.name + " (Risk: " + z.risk.toFixed(2) + ")</p>";
         }});
 
         html += "</div>";
@@ -158,7 +186,7 @@ def dashboard():
         let html = "<div class='card'><h3>Crowd Distribution</h3>";
 
         for(let i=0;i<data.safe_zones.length;i++){{
-            html += "<p>" + data.safe_zones[i] + " → " +
+            html += "<p>➡ " + data.safe_zones[i] + " → " +
                     data.percentage[i] + "% (" +
                     data.people[i] + " people)</p>";
         }}
@@ -178,8 +206,8 @@ def dashboard():
         let html = "<div class='card'><h3>Optimized Routes</h3>";
 
         for(let k in data.routes){{
-            html += "<p><b>" + k + "</b>: " +
-                    data.routes[k].join(" → ") + "</p>";
+            html += "<p><b>" + k + "</b><br>" +
+                    data.routes[k].join(" → ") + "</p><hr>";
         }}
 
         html += "</div>";
@@ -192,7 +220,6 @@ def dashboard():
     </body>
     </html>
     """
-
 
 # ---------------- APIs ----------------
 
@@ -207,7 +234,7 @@ def risk(area:str):
         for _, row in safe.iterrows()
     ]
 
-    return {"risk": selected['risk'], "safe_zones": safe_zones}
+    return {"risk": float(selected['risk']), "safe_zones": safe_zones}
 
 
 @app.get("/distribution")
