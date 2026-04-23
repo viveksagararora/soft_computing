@@ -39,24 +39,20 @@ def calculate_risk():
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
     return areas
 
-# ---------------- SAFE ZONES (FINAL FIX) ----------------
+# ---------------- SAFE ZONES ----------------
 def get_safe_zones(data, area, k=3):
     selected = data[data['area']==area].iloc[0]
 
-    # 🔥 relative filtering
     candidates = data[
         (data['area'] != area) &
         (data['risk'] < selected['risk'])
     ]
 
-    # 🔥 if too few → fallback
     if len(candidates) < k:
         candidates = data[data['area'] != area]
 
-    # 🔥 take top 15 safest (not just 3)
     top = candidates.nsmallest(min(15, len(candidates)), 'risk')
 
-    # 🔥 sample from them → dynamic result
     safe = top.sample(k)
 
     return safe
@@ -79,7 +75,12 @@ def dashboard():
 <html>
 <head>
 <title>RescueNet</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- MAP -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <style>
 body {{
@@ -138,10 +139,10 @@ button {{
 <script>
 
 function resetAll(){{
-    step2.innerHTML="";
-    step3.innerHTML="";
-    step4.innerHTML="";
-    step5.innerHTML="";
+    document.getElementById("step2").innerHTML="";
+    document.getElementById("step3").innerHTML="";
+    document.getElementById("step4").innerHTML="";
+    document.getElementById("step5").innerHTML="";
 }}
 
 async function analyze(){{
@@ -165,7 +166,7 @@ async function analyze(){{
     html += "<input id='people' placeholder='Enter people'>";
     html += "<button onclick='distribute()'>Next</button></div>";
 
-    step2.innerHTML = html;
+    document.getElementById("step2").innerHTML = html;
 
     new Chart(document.getElementById("riskChart"), {{
         type:'bar',
@@ -179,7 +180,9 @@ async function analyze(){{
 }}
 
 async function distribute(){{
-    step3.innerHTML=""; step4.innerHTML=""; step5.innerHTML="";
+    document.getElementById("step3").innerHTML="";
+    document.getElementById("step4").innerHTML="";
+    document.getElementById("step5").innerHTML="";
 
     let people = document.getElementById("people").value;
     if(!people) return alert("Enter people");
@@ -207,7 +210,7 @@ async function distribute(){{
     html += "<input id='k' placeholder='Number of routes'>";
     html += "<button onclick='routes()'>Generate Routes</button></div>";
 
-    step3.innerHTML = html;
+    document.getElementById("step3").innerHTML = html;
 
     new Chart(document.getElementById("distChart"), {{
         type:'bar',
@@ -219,7 +222,8 @@ async function distribute(){{
 }}
 
 async function routes(){{
-    step4.innerHTML=""; step5.innerHTML="";
+    document.getElementById("step4").innerHTML="";
+    document.getElementById("step5").innerHTML="";
 
     let area = document.getElementById("area").value;
     let dest = document.getElementById("destination").value;
@@ -235,15 +239,34 @@ async function routes(){{
         html += "<p>Route "+(i+1)+": "+r.join(" → ")+"</p>";
     }});
 
+    html += "<div id='map' style='height:400px;margin-top:20px;'></div>";
+
     html += "<button onclick='bestRoute()'>Best Route</button></div>";
 
     window.best = data.best;
 
-    step4.innerHTML = html;
+    document.getElementById("step4").innerHTML = html;
+
+    // 🔥 MAP
+    setTimeout(() => {{
+        let map = L.map('map').setView([28.6, 77.2], 11);
+
+        L.tileLayer('https://{{s}}.tile.openstreetmap.org/{{z}}/{{x}}/{{y}}.png').addTo(map);
+
+        data.coords.forEach((route, index) => {{
+            let color = index === 0 ? "green" : "blue";
+
+            L.polyline(route, {{ color: color }}).addTo(map);
+
+            L.marker(route[0]).addTo(map).bindPopup("Start");
+            L.marker(route[route.length-1]).addTo(map).bindPopup("Destination");
+        }});
+    }}, 200);
 }}
 
 function bestRoute(){{
-    step5.innerHTML = "<div class='card best'><h3>⭐ Best Route</h3>"+window.best.join(" → ")+"</div>";
+    document.getElementById("step5").innerHTML =
+    "<div class='card best'><h3>⭐ Best Route</h3>"+window.best.join(" → ")+"</div>";
 }}
 
 </script>
@@ -281,9 +304,19 @@ def routes(area:str, destination:str, k:int=3):
     paths = nx.shortest_simple_paths(G, area, destination, weight='weight')
 
     routes = []
+    coords = []
+
     for i, path in enumerate(paths):
         routes.append(path)
+
+        path_coords = []
+        for p in path:
+            row = areas[areas['area'] == p].iloc[0]
+            path_coords.append([row['lattitude'], row['longitude']])
+
+        coords.append(path_coords)
+
         if i == k-1:
             break
 
-    return {"routes": routes, "best": routes[0]}
+    return {"routes": routes, "best": routes[0], "coords": coords}
