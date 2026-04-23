@@ -36,14 +36,14 @@ def calculate_risk():
         0.1 * earthquake_score
     )
 
-    # NO ZERO RISK
+    # ✅ No zero risk
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
 
     return areas.sort_values(by='risk', ascending=False)
 
 # ---------------- GA ----------------
 def genetic_distribution(n, total_people):
-    vals = np.random.dirichlet(np.ones(n))[0]
+    vals = np.random.dirichlet(np.ones(n))   # FIXED
     perc = [round(v*100,2) for v in vals]
     ppl = [int(v*total_people) for v in vals]
     return perc, ppl
@@ -94,6 +94,7 @@ def dashboard():
         border:none;
         border-radius:6px;
         font-weight:bold;
+        cursor:pointer;
     }}
 
     .best {{
@@ -112,7 +113,7 @@ def dashboard():
     <!-- STEP 1 -->
     <div class="card">
         <h3>Select Area</h3>
-        <select id="area">{options}</select>
+        <select id="area" onchange="resetAll()">{options}</select>
         <button onclick="analyze()">Analyze Risk</button>
     </div>
 
@@ -123,8 +124,21 @@ def dashboard():
 
     <script>
 
+    function resetAll(){{
+        document.getElementById("step2").innerHTML = "";
+        document.getElementById("step3").innerHTML = "";
+        document.getElementById("step4").innerHTML = "";
+        document.getElementById("step5").innerHTML = "";
+    }}
+
     async function analyze(){{
+        resetAll();
+
         let area = document.getElementById("area").value;
+        if(!area){{
+            alert("Select area first");
+            return;
+        }}
 
         let data = await (await fetch('/risk?area='+area)).json();
 
@@ -151,8 +165,17 @@ def dashboard():
     }}
 
     async function distribute(){{
+        document.getElementById("step3").innerHTML = "";
+        document.getElementById("step4").innerHTML = "";
+        document.getElementById("step5").innerHTML = "";
+
         let area = document.getElementById("area").value;
         let people = document.getElementById("people").value;
+
+        if(!people){{
+            alert("Enter number of people");
+            return;
+        }}
 
         let data = await (await fetch('/distribution?area='+area+'&people='+people)).json();
 
@@ -179,6 +202,9 @@ def dashboard():
     }}
 
     async function routes(){{
+        document.getElementById("step4").innerHTML = "";
+        document.getElementById("step5").innerHTML = "";
+
         let area = document.getElementById("area").value;
         let k = document.getElementById("k").value || 3;
 
