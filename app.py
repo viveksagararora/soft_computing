@@ -39,14 +39,25 @@ def calculate_risk():
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
     return areas
 
-# ---------------- SAFE ZONES ----------------
+# ---------------- SAFE ZONES (FINAL FIX) ----------------
 def get_safe_zones(data, area, k=3):
     selected = data[data['area']==area].iloc[0]
 
-    safe = data[
+    # 🔥 relative filtering
+    candidates = data[
         (data['area'] != area) &
         (data['risk'] < selected['risk'])
-    ].nsmallest(k, 'risk')
+    ]
+
+    # 🔥 if too few → fallback
+    if len(candidates) < k:
+        candidates = data[data['area'] != area]
+
+    # 🔥 take top 15 safest (not just 3)
+    top = candidates.nsmallest(min(15, len(candidates)), 'risk')
+
+    # 🔥 sample from them → dynamic result
+    safe = top.sample(k)
 
     return safe
 
@@ -164,7 +175,6 @@ async function analyze(){{
         }}
     }});
 
-    // 🔥 STORE SAFE ZONES
     window.safeZones = data.safe_zones.map(z=>z.name);
 }}
 
@@ -258,7 +268,6 @@ def risk(area:str):
         ]
     }
 
-# 🔥 FIXED: SAME SAFE ZONES USED
 @app.get("/distribution")
 def distribution(people:int, zones:str):
     safe = zones.split(",")
