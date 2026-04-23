@@ -36,7 +36,6 @@ def calculate_risk():
         0.1 * earthquake_score
     )
 
-    # 🔥 Normalize to 0–100
     areas['risk'] = 100 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
 
     return areas.sort_values(by='risk', ascending=False)
@@ -57,26 +56,17 @@ def dashboard():
     return f"""
     <html>
     <head>
-    <title>RescueNet - AI Evacuation System</title>
+    <title>RescueNet</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
     body {{
-        margin:0;
         font-family: 'Segoe UI';
         background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
         color:white;
-    }}
-
-    .header {{
         text-align:center;
-        padding:20px;
-        font-size:28px;
-        font-weight:bold;
-    }}
-
-    .container {{
-        max-width:1000px;
-        margin:auto;
+        padding:40px;
     }}
 
     .card {{
@@ -84,47 +74,24 @@ def dashboard():
         color:black;
         padding:20px;
         border-radius:12px;
-        margin-top:20px;
-        box-shadow:0 10px 25px rgba(0,0,0,0.3);
-        animation: fadeIn 0.5s ease-in-out;
+        max-width:600px;
+        margin:20px auto;
+    }}
+
+    input, select {{
+        width:100%;
+        padding:10px;
+        margin-top:10px;
     }}
 
     button {{
+        width:100%;
         padding:12px;
+        margin-top:15px;
         background:#0077ff;
         color:white;
         border:none;
         border-radius:6px;
-        cursor:pointer;
-        width:100%;
-        margin-top:10px;
-        font-weight:bold;
-    }}
-
-    button:hover {{
-        background:#005fcc;
-    }}
-
-    input, select {{
-        padding:10px;
-        margin-top:10px;
-        width:100%;
-        border-radius:6px;
-        border:1px solid #ccc;
-    }}
-
-    .badge {{
-        display:inline-block;
-        padding:6px 10px;
-        border-radius:6px;
-        background:#ff4d4d;
-        color:white;
-        font-weight:bold;
-    }}
-
-    @keyframes fadeIn {{
-        from {{opacity:0; transform:translateY(10px);}}
-        to {{opacity:1; transform:translateY(0);}}
     }}
     </style>
 
@@ -132,87 +99,73 @@ def dashboard():
 
     <body>
 
-    <div class="header">🚨 RescueNet - Smart Evacuation System</div>
-
-    <div class="container">
+    <h1>🚨 RescueNet</h1>
 
     <div class="card">
-    <h3>Step 1: Select Risk Area</h3>
-    <select id="area">{options}</select>
-    <button onclick="analyze()">Analyze Risk</button>
+        <select id="area">{options}</select>
+        <input id="people" placeholder="Enter number of people">
+        <input id="routesCount" placeholder="Number of routes (e.g. 3)">
+        <button onclick="run()">Generate Plan</button>
     </div>
 
-    <div id="risk_output"></div>
-    <div id="crowd_input"></div>
-    <div id="distribution_output"></div>
-    <div id="routes_output"></div>
-
-    </div>
+    <div id="output"></div>
 
     <script>
 
-    async function analyze(){{
+    async function run(){{
         let area = document.getElementById("area").value;
-        let res = await fetch('/risk?area='+area);
-        let data = await res.json();
+        let people = document.getElementById("people").value;
+        let routesCount = document.getElementById("routesCount").value;
+
+        let riskRes = await fetch(`/risk?area=${{area}}`);
+        let riskData = await riskRes.json();
+
+        let distRes = await fetch(`/distribution?area=${{area}}&people=${{people}}`);
+        let distData = await distRes.json();
+
+        let routeRes = await fetch(`/routes?area=${{area}}&k=${{routesCount}}`);
+        let routeData = await routeRes.json();
 
         let html = "<div class='card'>";
-        html += "<h3>Risk Score: <span class='badge'>" + data.risk.toFixed(2) + "</span></h3>";
+        html += "<h3>Risk Score: " + riskData.risk.toFixed(2) + "</h3>";
 
-        html += "<h4>Safe Zones:</h4>";
+        html += "<h4>Safe Zones</h4><canvas id='riskChart'></canvas>";
 
-        data.safe_zones.forEach(function(z){{
-            html += "<p>✔ " + z.name + " (Risk: " + z.risk.toFixed(2) + ")</p>";
+        html += "<h4>Crowd Distribution</h4><canvas id='distChart'></canvas>";
+
+        html += "<h4>Routes</h4>";
+
+        for(let k in routeData.routes){{
+            html += "<p><b>" + k + "</b>: " + routeData.routes[k].join(" → ") + "</p>";
+        }}
+
+        html += "</div>";
+
+        document.getElementById("output").innerHTML = html;
+
+        // Risk Chart
+        new Chart(document.getElementById("riskChart"), {{
+            type: 'bar',
+            data: {{
+                labels: riskData.safe_zones.map(z => z.name),
+                datasets: [{{
+                    label: 'Risk',
+                    data: riskData.safe_zones.map(z => z.risk)
+                }}]
+            }}
         }});
 
-        html += "</div>";
-
-        document.getElementById("risk_output").innerHTML = html;
-
-        document.getElementById("crowd_input").innerHTML =
-        "<div class='card'><h3>Step 2: Enter Crowd Size</h3>" +
-        "<input id='people' placeholder='Enter number of people'>" +
-        "<button onclick='distribute()'>Distribute Crowd</button></div>";
-    }}
-
-
-    async function distribute(){{
-        let people = document.getElementById("people").value;
-        let area = document.getElementById("area").value;
-
-        let res = await fetch('/distribution?area='+area+'&people='+people);
-        let data = await res.json();
-
-        let html = "<div class='card'><h3>Crowd Distribution</h3>";
-
-        for(let i=0;i<data.safe_zones.length;i++){{
-            html += "<p>➡ " + data.safe_zones[i] + " → " +
-                    data.percentage[i] + "% (" +
-                    data.people[i] + " people)</p>";
-        }}
-
-        html += "<button onclick='routes()'>Generate Routes</button></div>";
-
-        document.getElementById("distribution_output").innerHTML = html;
-    }}
-
-
-    async function routes(){{
-        let area = document.getElementById("area").value;
-
-        let res = await fetch('/routes?area='+area);
-        let data = await res.json();
-
-        let html = "<div class='card'><h3>Optimized Routes</h3>";
-
-        for(let k in data.routes){{
-            html += "<p><b>" + k + "</b><br>" +
-                    data.routes[k].join(" → ") + "</p><hr>";
-        }}
-
-        html += "</div>";
-
-        document.getElementById("routes_output").innerHTML = html;
+        // Distribution Chart
+        new Chart(document.getElementById("distChart"), {{
+            type: 'bar',
+            data: {{
+                labels: distData.safe_zones,
+                datasets: [{{
+                    label: 'People %',
+                    data: distData.percentage
+                }}]
+            }}
+        }});
     }}
 
     </script>
@@ -230,7 +183,7 @@ def risk(area:str):
     safe = data.tail(3)
 
     safe_zones = [
-        {"name": row['area'], "risk": row['risk']}
+        {"name": row['area'], "risk": float(row['risk'])}
         for _, row in safe.iterrows()
     ]
 
@@ -248,9 +201,9 @@ def distribution(area:str, people:int):
 
 
 @app.get("/routes")
-def routes(area:str):
+def routes(area:str, k:int=3):
     data = calculate_risk()
-    safe = data.tail(3)['area'].values
+    safe = data.tail(k)['area'].values
 
     routes = {}
     for zone in safe:
