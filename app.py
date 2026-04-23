@@ -55,7 +55,7 @@ def home():
 
     return f"""
     <html>
-    <body style="text-align:center;font-family:sans-serif">
+    <body style="font-family:sans-serif;text-align:center;background:#1e3c72;color:white">
     <h1>🚨 RescueNet</h1>
 
     <form action="/risk_page">
@@ -74,33 +74,52 @@ def risk_page(area:str):
     selected = data[data['area']==area].iloc[0]
     safe = data.tail(3)
 
-    html = f"<h2>Risk Score: {selected['risk']:.2f}</h2>"
-    html += "<h3>Safe Zones:</h3>"
+    labels = [row['area'] for _, row in safe.iterrows()]
+    values = [float(row['risk']) for _, row in safe.iterrows()]
 
-    for _, row in safe.iterrows():
-        html += f"<p>{row['area']} (Risk: {row['risk']:.2f})</p>"
+    return f"""
+    <html>
+    <head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
 
-    html += f"""
+    <body style="text-align:center;font-family:sans-serif">
+
+    <h2>Risk Score: {selected['risk']:.2f}</h2>
+
+    <canvas id="chart"></canvas>
+
     <form action="/crowd_page">
         <input type="hidden" name="area" value="{area}">
         <button>Next</button>
     </form>
-    """
 
-    return f"<html><body style='text-align:center'>{html}</body></html>"
+    <script>
+    new Chart(document.getElementById('chart'), {{
+        type:'bar',
+        data:{{
+            labels:{labels},
+            datasets:[{{data:{values}}}]
+        }}
+    }});
+    </script>
+
+    </body>
+    </html>
+    """
 
 # ---------------- PAGE 3 ----------------
 @app.get("/crowd_page", response_class=HTMLResponse)
 def crowd_page(area:str):
     return f"""
     <html>
-    <body style="text-align:center">
+    <body style="text-align:center;font-family:sans-serif">
 
-    <h2>Enter Crowd Size</h2>
+    <h2>Enter Crowd</h2>
 
     <form action="/distribution_page">
         <input type="hidden" name="area" value="{area}">
-        <input name="people" required><br><br>
+        <input name="people" placeholder="People" required><br><br>
         <button>Distribute</button>
     </form>
 
@@ -116,33 +135,50 @@ def distribution_page(area:str, people:int):
 
     perc, ppl = genetic_distribution(3, int(people))
 
-    html = "<h2>Crowd Distribution</h2>"
+    return f"""
+    <html>
+    <head>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
 
-    for i in range(3):
-        html += f"<p>{safe[i]} → {perc[i]}% ({ppl[i]} people)</p>"
+    <body style="text-align:center;font-family:sans-serif">
 
-    html += f"""
+    <h2>Crowd Distribution</h2>
+
+    <canvas id="chart"></canvas>
+
     <form action="/routes_input">
         <input type="hidden" name="area" value="{area}">
         <button>Next</button>
     </form>
-    """
 
-    return f"<html><body style='text-align:center'>{html}</body></html>"
+    <script>
+    new Chart(document.getElementById('chart'), {{
+        type:'bar',
+        data:{{
+            labels:{list(safe)},
+            datasets:[{{data:{perc}}}]
+        }}
+    }});
+    </script>
+
+    </body>
+    </html>
+    """
 
 # ---------------- PAGE 5 ----------------
 @app.get("/routes_input", response_class=HTMLResponse)
 def routes_input(area:str):
     return f"""
     <html>
-    <body style="text-align:center">
+    <body style="text-align:center;font-family:sans-serif">
 
-    <h2>Enter Number of Routes</h2>
+    <h2>Number of Routes</h2>
 
     <form action="/routes_page">
         <input type="hidden" name="area" value="{area}">
-        <input name="k" required><br><br>
-        <button>Generate Routes</button>
+        <input name="k" placeholder="Enter routes count"><br><br>
+        <button>Generate</button>
     </form>
 
     </body>
@@ -151,7 +187,7 @@ def routes_input(area:str):
 
 # ---------------- PAGE 6 ----------------
 @app.get("/routes_page", response_class=HTMLResponse)
-def routes_page(area:str, k:int):
+def routes_page(area:str, k:int=3):
     data = calculate_risk()
     safe = data.tail(k)['area'].values
 
@@ -171,11 +207,18 @@ def routes_page(area:str, k:int):
     best = all_paths[0][1]
     others = [p[1] for p in all_paths[1:]]
 
-    html = "<h2>⭐ Best Route</h2>"
-    html += "<p>" + " → ".join(best) + "</p>"
+    html = "<h2>Best Route</h2><p>" + " → ".join(best) + "</p>"
 
     html += "<h3>Other Routes</h3>"
     for r in others:
         html += "<p>" + " → ".join(r) + "</p>"
 
-    return f"<html><body style='text-align:center'>{html}</body></html>"
+    return f"""
+    <html>
+    <body style="text-align:center;font-family:sans-serif">
+
+    {html}
+
+    </body>
+    </html>
+    """
