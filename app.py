@@ -39,33 +39,38 @@ def calculate_risk():
     areas['risk'] = 10 + 90 * (raw_risk - raw_risk.min()) / (raw_risk.max() - raw_risk.min())
     return areas
 
-# ---------------- SAFE ZONES (FINAL FIX) ----------------
+# ---------------- SAFE ZONES ----------------
 def get_safe_zones(data, area, k=3):
     selected = data[data['area']==area].iloc[0]
 
-    # 🔥 relative filtering
     candidates = data[
         (data['area'] != area) &
         (data['risk'] < selected['risk'])
     ]
 
-    # 🔥 if too few → fallback
     if len(candidates) < k:
         candidates = data[data['area'] != area]
 
-    # 🔥 take top 15 safest (not just 3)
     top = candidates.nsmallest(min(15, len(candidates)), 'risk')
 
-    # 🔥 sample from them → dynamic result
     safe = top.sample(k)
 
     return safe
 
-# ---------------- GA ----------------
-def genetic_distribution(n, total_people):
-    vals = np.random.dirichlet(np.ones(n))
-    perc = [round(v*100,2) for v in vals]
-    ppl = [int(v*total_people) for v in vals]
+# ---------------- FIXED DISTRIBUTION ----------------
+def risk_based_distribution(safe_names, total_people):
+    data = calculate_risk()
+
+    safe_df = data[data['area'].isin(safe_names)]
+
+    # 🔥 inverse risk → safety weight
+    safety = 1 / safe_df['risk']
+
+    weights = safety / safety.sum()
+
+    perc = [round(w * 100, 2) for w in weights]
+    ppl = [int(w * total_people) for w in weights]
+
     return perc, ppl
 
 # ---------------- UI ----------------
@@ -268,11 +273,12 @@ def risk(area:str):
         ]
     }
 
+# 🔥 ONLY FIXED PART
 @app.get("/distribution")
 def distribution(people:int, zones:str):
     safe = zones.split(",")
 
-    perc, ppl = genetic_distribution(len(safe), int(people))
+    perc, ppl = risk_based_distribution(safe, int(people))
 
     return {"safe_zones": safe, "percentage": perc, "people": ppl}
 
